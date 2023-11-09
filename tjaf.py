@@ -35,6 +35,7 @@ class Tja():
         self.text = text
         self.common_headers = {}
         self.headers = [{},{},{},{},{},{},{}]
+        self.humen_list = [[],[],[],[],[],[],[]]
 
         current_level = 3
         for line in text.splitlines():
@@ -53,3 +54,55 @@ class Tja():
 
                     header = (key,ValueWrapper(value))
                     self.headers[current_level].update([header])
+            elif line:
+                self.humen_list[current_level].append(line)
+
+    def has_branch(self, level):
+        return any(h.split(" ",1)[0] == "#BRANCHSTART" for h in self.humen_list[level])
+
+    def to_mongo(self, song_id, order):
+        title = self.common_headers["TITLE"].as_str()
+        subtitle = None
+        if "SUBTITLE" in self.common_headers:
+            subtitle = self.common_headers["SUBTITLE"].as_str()
+            if subtitle.startswith("--"):
+                subtitle = subtitle.split("--",1)[1]
+        level_names = ["easy","normal","hard","oni","ura"]
+
+        return {
+            "title_lang": {
+                "ja": title,
+                "en": None,
+                "cn": None,
+                "tw": None,
+                "ko": None
+            },
+            "subtitle_lang": {
+                "ja": subtitle,
+                "en": None,
+                "cn": None,
+                "tw": None,
+                "ko": None
+            },
+            "courses": {
+                level_names[level]: {
+                    "stars": self.headers[level]["LEVEL"].as_int(),
+                    "branch": self.has_branch(level)
+                } if self.humen_list[level] != [] else None for level in range(5)
+            },
+            "enabled": True,
+            "title": title,
+            "subtitle": subtitle,
+            "category_id": None,
+            "type": "tja",
+            "music_type": self.common_headers["WAVE"].as_file_ext(),
+            "offset": -0.01,
+            "skin_id": None,
+            "preview": self.common_headers.get("DEMOSTART").as_float(),
+            "volume": 1,
+            "maker_id": None,
+            "lyrics": False,
+            "hash": "",
+            "id": song_id,
+            "order": order
+        }
