@@ -60,6 +60,9 @@ class Tja():
     def has_branch(self, level):
         return any(h.split(" ",1)[0] == "#BRANCHSTART" for h in self.humen_list[level])
 
+    def has_lyrics(self):
+        return any(h.split(" ",1)[0] == "#LYRIC" for h in sum(self.humen_list[:5],[]))
+
     def to_mongo(self, song_id, order):
         title = self.common_headers["TITLE"].as_str()
         subtitle = None
@@ -68,6 +71,9 @@ class Tja():
             if subtitle.startswith("--"):
                 subtitle = subtitle.split("--",1)[1]
         level_names = ["easy","normal","hard","oni","ura"]
+        preview = None
+        if "DEMOSTART" in self.common_headers:
+            preview = self.common_headers["DEMOSTART"].as_float()
 
         return {
             "title_lang": {
@@ -98,10 +104,10 @@ class Tja():
             "music_type": self.common_headers["WAVE"].as_file_ext(),
             "offset": -0.01,
             "skin_id": None,
-            "preview": self.common_headers.get("DEMOSTART").as_float(),
+            "preview": preview,
             "volume": 1,
             "maker_id": None,
-            "lyrics": False,
+            "lyrics": self.has_lyrics(),
             "hash": "",
             "id": song_id,
             "order": order
