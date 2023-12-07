@@ -1,7 +1,5 @@
 import pathlib
 import re
-import argparse
-import json
 
 class ValueWrapper():
     def __init__(self, value):
@@ -33,21 +31,21 @@ class ValueWrapper():
         return f"ValueWrapper({self.as_str()})"
 
 class Tja():
-    def __init__(self, path, encoding="UTF-8", a=False):
-        self.text = pathlib.Path(path).read_text(encoding=encoding)
+    def __init__(self, text):
+        self.text = text
         self.common_headers = {}
         self.headers = [{},{},{},{},{},{},{}]
         self.humen_list = [[],[],[],[],[],[],[]]
 
         current_level = 3
-        for line in self.text.splitlines():
+        for line in text.splitlines():
             if re.match("^[a-zA-Z0-9]+:",line):
                 key,value = line.split(":",1)
                 if key not in ["COURSE","LEVEL","BALLOON","BALLOONNOR","BALLOONEXP","BALLOONMAS","SCOREINIT","SCOREDIFF","EXAM2"]:
                     header = (key,ValueWrapper(value))
                     self.common_headers.update([header])
                 else:
-                    if key == "COURSE" and (any(h != [] for h in self.humen_list) or not a):
+                    if key == "COURSE":
                         levels = ["easy","normal","hard","oni","edit","tower","dan"]
                         if value.lower() in levels:
                             current_level = levels.index(value.lower())
@@ -65,7 +63,7 @@ class Tja():
     def has_lyrics(self):
         return any(h.split(" ",1)[0] == "#LYRIC" for h in sum(self.humen_list[:5],[]))
 
-    def to_mongo(self, song_id, order, a=False):
+    def to_mongo(self, song_id, order):
         title = self.common_headers["TITLE"].as_str()
         subtitle = None
         if "SUBTITLE" in self.common_headers:
@@ -94,7 +92,7 @@ class Tja():
             },
             "courses": {
                 level_names[level]: {
-                    "stars": self.headers[level]["LEVEL"].as_float() if a else self.headers[level]["LEVEL"].as_int(),
+                    "stars": self.headers[level]["LEVEL"].as_int(),
                     "branch": self.has_branch(level)
                 } if self.humen_list[level] != [] else None for level in range(5)
             },
@@ -114,32 +112,3 @@ class Tja():
             "id": song_id,
             "order": order
         }
-
-def parse_args():
-    parser = argparse.ArgumentParser(description='Process some options for tjaf.py')
-    parser.add_argument('--make-songs-db', action='store_true')
-    parser.add_argument('--songs-dir')
-    parser.add_argument('--json-path')
-    parser.add_argument('--float-stars', action='store_true', default=False)
-    parser.add_argument('--skip-first-course-header', action='store_true', default=False)
-    return parser.parse_args()
-
-def app(args):
-    if not args.make_songs_db:
-        print("Example usage:\n$ python tjaf.py --make-songs-db --songs-dir songs --json-path test.json --float-stars --skip-first-course-header")
-        return
-
-    db = []
-
-    for order, path in enumerate(sorted(pathlib.Path(args.songs_dir).rglob("*.tja"))):
-        tja = Tja(path, a=args.skip_first_course_header)
-        id = path.parent.name
-        if id.isdigit():
-            id = int(id)
-        mongo = tja.to_mongo(id, order, a=args.float_stars)
-        db += [ mongo ]
-
-    pathlib.Path(args.json_path).write_text(json.dumps(db), encoding="UTF-8")
-
-if __name__ == "__main__":
-    app(parse_args())
