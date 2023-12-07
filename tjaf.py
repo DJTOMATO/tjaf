@@ -38,7 +38,7 @@ class Tja():
         self.humen_list = [[],[],[],[],[],[],[]]
 
         current_level = 3
-        for line in text.splitlines():
+        for line in self.text.splitlines():
             if re.match("^[a-zA-Z0-9]+:",line):
                 key,value = line.split(":",1)
                 if key not in ["COURSE","LEVEL","BALLOON","BALLOONNOR","BALLOONEXP","BALLOONMAS","SCOREINIT","SCOREDIFF","EXAM2"]:
