@@ -2,8 +2,8 @@ import setuptools
 
 setuptools.setup(
     name='tjaf',
-    version='1.0.1',
-    packages=setuptools.find_packages(),
+    version='1.0.5',
+    packages=['tjaf'],
     install_requires=[],
     author='Yuuki',
     author_email='skifree@skiff.com',
